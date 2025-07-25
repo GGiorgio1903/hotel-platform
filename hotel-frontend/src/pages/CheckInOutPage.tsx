@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
@@ -26,7 +25,6 @@ interface CheckInOut {
 }
 
 export function CheckInOutPage() {
-  const { guest } = useAuth()
   const { toast } = useToast()
   
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -98,7 +96,7 @@ export function CheckInOutPage() {
       })
 
       if (response.ok) {
-        const data = await response.json()
+        await response.json()
         toast({
           title: "Check-in Successful",
           description: `Welcome! Room ${roomNumber} is now unlocked.`,
@@ -136,7 +134,7 @@ export function CheckInOutPage() {
       })
 
       if (response.ok) {
-        const data = await response.json()
+        await response.json()
         toast({
           title: "Check-out Successful",
           description: `Thank you for your stay! Room ${roomNumber} is now locked.`,

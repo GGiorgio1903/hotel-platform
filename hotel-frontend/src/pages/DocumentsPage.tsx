@@ -1,12 +1,11 @@
-import React, { useState, useEffect } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
-import { FileText, Upload, Loader2, CheckCircle, XCircle, Download } from 'lucide-react'
+import { FileText, Upload, Loader2, CheckCircle } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 interface Document {
@@ -19,7 +18,6 @@ interface Document {
 }
 
 export function DocumentsPage() {
-  const { guest } = useAuth()
   const { toast } = useToast()
   
   const [documents, setDocuments] = useState<Document[]>([])
@@ -100,7 +98,7 @@ export function DocumentsPage() {
       })
 
       if (response.ok) {
-        const data = await response.json()
+        await response.json()
         toast({
           title: "Upload Successful",
           description: "Your document has been uploaded successfully.",

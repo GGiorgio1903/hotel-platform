@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Calendar, MapPin, Users, DollarSign, Loader2 } from 'lucide-react'
+import { Calendar, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 export function BookingPage() {
@@ -102,7 +102,7 @@ export function BookingPage() {
           if (typeof errorData.detail === 'string') {
             errorMessage = errorData.detail
           } else if (Array.isArray(errorData.detail)) {
-            errorMessage = errorData.detail.map(err => err.msg || err).join(', ')
+            errorMessage = errorData.detail.map((err: any) => err.msg || err).join(', ')
           } else {
             errorMessage = JSON.stringify(errorData.detail)
           }

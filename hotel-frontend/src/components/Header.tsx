@@ -6,7 +6,7 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu'
-import { User, LogOut, Home, Calendar, CreditCard, FileText, Settings } from 'lucide-react'
+import { User, LogOut, Home, Calendar, FileText, Settings } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 
 export function Header() {

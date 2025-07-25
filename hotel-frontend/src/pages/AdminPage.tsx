@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react'
-import { useAuth } from '@/contexts/AuthContext'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Users, Calendar, FileText, CreditCard, Mail, Database, Settings, CheckCircle, XCircle, Clock } from 'lucide-react'
+import { Users, Calendar, FileText, CreditCard, Mail, Database, CheckCircle, XCircle, Clock } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 interface Guest {
@@ -49,7 +48,6 @@ interface Payment {
 }
 
 export function AdminPage() {
-  const { guest } = useAuth()
   const { toast } = useToast()
   
   const [guests, setGuests] = useState<Guest[]>([])
