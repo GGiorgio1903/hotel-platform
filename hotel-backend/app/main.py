@@ -388,12 +388,3 @@ async def control_smart_lock(request: SmartLockRequest):
         request.guest_id
     )
     return response
-
-@app.get("/config/rooms")
-async def get_room_config():
-    from .room_config import RoomConfig
-    return {
-        "bnb_mode": RoomConfig.is_bnb_mode(),
-        "available_rooms": RoomConfig.get_available_rooms(),
-        "base_rate_per_night": RoomConfig.get_base_rate_per_night()
-    }
