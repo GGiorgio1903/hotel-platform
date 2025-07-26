@@ -32,12 +32,29 @@ export function CheckInOutPage() {
   const [loading, setLoading] = useState(true)
   const [processing, setProcessing] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [roomConfig, setRoomConfig] = useState({
+    bnb_mode: false,
+    available_rooms: ['101', '102', '201', '202', '301', '302']
+  })
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
   useEffect(() => {
     fetchData()
+    fetchRoomConfig()
   }, [])
+
+  const fetchRoomConfig = async () => {
+    try {
+      const response = await fetch(`${API_URL}/config/rooms`)
+      if (response.ok) {
+        const config = await response.json()
+        setRoomConfig(config)
+      }
+    } catch (error) {
+      console.error('Failed to fetch room config:', error)
+    }
+  }
 
   const fetchData = async () => {
     try {
@@ -99,7 +116,7 @@ export function CheckInOutPage() {
         await response.json()
         toast({
           title: "Check-in Successful",
-          description: `Welcome! Room ${roomNumber} is now unlocked.`,
+          description: `Welcome! ${roomConfig.bnb_mode ? roomNumber : `Room ${roomNumber}`} is now unlocked.`,
         })
         fetchData() // Refresh data
       } else {
@@ -137,7 +154,7 @@ export function CheckInOutPage() {
         await response.json()
         toast({
           title: "Check-out Successful",
-          description: `Thank you for your stay! Room ${roomNumber} is now locked.`,
+          description: `Thank you for your stay! ${roomConfig.bnb_mode ? roomNumber : `Room ${roomNumber}`} is now locked.`,
         })
         fetchData() // Refresh data
       } else {
@@ -240,7 +257,9 @@ export function CheckInOutPage() {
               <Card key={booking.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg">Room {booking.room_number}</CardTitle>
+                    <CardTitle className="text-lg">
+                      {roomConfig.bnb_mode ? booking.room_number : `Room ${booking.room_number}`}
+                    </CardTitle>
                     {getStatusBadge(booking.status)}
                   </div>
                   <CardDescription>

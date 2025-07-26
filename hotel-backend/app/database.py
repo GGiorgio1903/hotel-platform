@@ -32,7 +32,25 @@ class InMemoryDatabase:
     def get_guest_by_id(self, guest_id: str) -> Optional[Guest]:
         return self.guests.get(guest_id)
     
+    def check_room_availability(self, room_number: str, check_in_date: datetime, check_out_date: datetime, exclude_booking_id: str = None) -> bool:
+        """Check if a room is available for the given date range"""
+        for booking in self.bookings.values():
+            if (booking.room_number == room_number and 
+                booking.status in ['pending', 'confirmed', 'checked_in'] and
+                booking.id != exclude_booking_id and
+                booking.check_in_date < check_out_date and
+                booking.check_out_date > check_in_date):
+                return False
+        return True
+
     def create_booking(self, booking_data: dict) -> Booking:
+        if not self.check_room_availability(
+            booking_data['room_number'], 
+            booking_data['check_in_date'], 
+            booking_data['check_out_date']
+        ):
+            raise ValueError(f"Room {booking_data['room_number']} is not available for the selected dates")
+            
         booking_id = str(uuid.uuid4())
         booking = Booking(
             id=booking_id,
@@ -52,6 +70,15 @@ class InMemoryDatabase:
     def update_booking(self, booking_id: str, update_data: dict) -> Optional[Booking]:
         if booking_id in self.bookings:
             booking = self.bookings[booking_id]
+            
+            if any(key in update_data for key in ['room_number', 'check_in_date', 'check_out_date']):
+                room_number = update_data.get('room_number', booking.room_number)
+                check_in_date = update_data.get('check_in_date', booking.check_in_date)
+                check_out_date = update_data.get('check_out_date', booking.check_out_date)
+                
+                if not self.check_room_availability(room_number, check_in_date, check_out_date, booking_id):
+                    raise ValueError(f"Room {room_number} is not available for the selected dates")
+            
             for key, value in update_data.items():
                 if hasattr(booking, key) and value is not None:
                     setattr(booking, key, value)

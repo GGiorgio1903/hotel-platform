@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
@@ -21,12 +21,41 @@ export function BookingPage() {
     special_requests: ''
   })
   
+  const [roomConfig, setRoomConfig] = useState({
+    bnb_mode: false,
+    available_rooms: ['101', '102', '201', '202', '301', '302'],
+    base_rate_per_night: 120
+  })
+  
   const checkInRef = useRef<HTMLInputElement>(null)
   const checkOutRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+
+  useEffect(() => {
+    const fetchRoomConfig = async () => {
+      try {
+        const response = await fetch(`${API_URL}/config/rooms`)
+        if (response.ok) {
+          const config = await response.json()
+          setRoomConfig(config)
+          
+          if (config.bnb_mode && config.available_rooms.length === 1) {
+            setFormData(prev => ({
+              ...prev,
+              room_number: config.available_rooms[0]
+            }))
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch room config:', error)
+      }
+    }
+    
+    fetchRoomConfig()
+  }, [API_URL])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -142,7 +171,7 @@ export function BookingPage() {
       if (checkIn < checkOut) {
         const diffTime = Math.abs(checkOut.getTime() - checkIn.getTime())
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-        const calculatedTotal = diffDays * baseRatePerNight
+        const calculatedTotal = diffDays * roomConfig.base_rate_per_night
         setFormData(prev => ({
           ...prev,
           total_amount: calculatedTotal
@@ -165,8 +194,6 @@ export function BookingPage() {
     return 0
   }
 
-  const suggestedRooms = ['101', '102', '201', '202', '301', '302']
-  const baseRatePerNight = 120
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
@@ -195,21 +222,30 @@ export function BookingPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <Label htmlFor="room_number">Room Number</Label>
-              <select
-                name="room_number"
-                value={formData.room_number}
-                onChange={(e) => handleChange(e as any)}
-                required
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 bg-white shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
-                <option value="">Select a room</option>
-                {suggestedRooms.map(room => (
-                  <option key={room} value={room}>Room {room}</option>
-                ))}
-              </select>
-            </div>
+            {!roomConfig.bnb_mode && (
+              <div>
+                <Label htmlFor="room_number">Room Number</Label>
+                <select
+                  name="room_number"
+                  value={formData.room_number}
+                  onChange={(e) => handleChange(e as any)}
+                  required
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 bg-white shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="">Select a room</option>
+                  {roomConfig.available_rooms.map(room => (
+                    <option key={room} value={room}>Room {room}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+            
+            {roomConfig.bnb_mode && (
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-blue-900">Booking for: {roomConfig.available_rooms[0]}</h3>
+                <p className="text-sm text-blue-700">Our beautiful single room accommodation</p>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -248,11 +284,11 @@ export function BookingPage() {
                 </div>
                 <div className="flex items-center justify-between mt-1">
                   <span className="text-sm text-gray-600">Rate per night:</span>
-                  <span className="font-medium">€{baseRatePerNight}</span>
+                  <span className="font-medium">€{roomConfig.base_rate_per_night}</span>
                 </div>
                 <div className="flex items-center justify-between mt-1 pt-2 border-t border-blue-200">
                   <span className="font-semibold">Estimated Total:</span>
-                  <span className="font-bold text-lg">€{(calculateNights() * baseRatePerNight).toFixed(2)}</span>
+                  <span className="font-bold text-lg">€{(calculateNights() * roomConfig.base_rate_per_night).toFixed(2)}</span>
                 </div>
               </div>
             )}

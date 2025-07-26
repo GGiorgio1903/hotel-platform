@@ -55,12 +55,29 @@ export function AdminPage() {
   const [documents, setDocuments] = useState<Document[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
   const [loading, setLoading] = useState(true)
+  const [roomConfig, setRoomConfig] = useState({
+    bnb_mode: false,
+    available_rooms: ['101', '102', '201', '202', '301', '302']
+  })
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
   useEffect(() => {
     fetchAdminData()
+    fetchRoomConfig()
   }, [])
+
+  const fetchRoomConfig = async () => {
+    try {
+      const response = await fetch(`${API_URL}/config/rooms`)
+      if (response.ok) {
+        const config = await response.json()
+        setRoomConfig(config)
+      }
+    } catch (error) {
+      console.error('Failed to fetch room config:', error)
+    }
+  }
 
   const fetchAdminData = async () => {
     try {
@@ -283,7 +300,9 @@ export function AdminPage() {
                 {bookings.slice(0, 5).map((booking) => (
                   <div key={booking.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
                     <div>
-                      <p className="font-medium">Room {booking.room_number}</p>
+                      <p className="font-medium">
+                        {roomConfig.bnb_mode ? booking.room_number : `Room ${booking.room_number}`}
+                      </p>
                       <p className="text-sm text-gray-600">
                         {booking.guest?.first_name} {booking.guest?.last_name}
                       </p>
@@ -339,7 +358,9 @@ export function AdminPage() {
                 {bookings.map((booking) => (
                   <div key={booking.id} className="p-4 border rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="font-semibold">Room {booking.room_number}</h3>
+                      <h3 className="font-semibold">
+                        {roomConfig.bnb_mode ? booking.room_number : `Room ${booking.room_number}`}
+                      </h3>
                       {getStatusBadge(booking.status)}
                     </div>
                     <div className="grid grid-cols-2 gap-4 text-sm">
@@ -412,7 +433,7 @@ export function AdminPage() {
                         {formatCurrency(payment.amount, payment.currency)}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        Booking: {payment.booking?.room_number ? `Room ${payment.booking.room_number}` : payment.booking_id.slice(0, 8)}
+                        Booking: {payment.booking?.room_number ? (roomConfig.bnb_mode ? payment.booking.room_number : `Room ${payment.booking.room_number}`) : payment.booking_id.slice(0, 8)}
                       </p>
                       <p className="text-sm text-gray-600">
                         Date: {formatDate(payment.created_at)}

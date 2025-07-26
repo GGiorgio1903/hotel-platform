@@ -129,29 +129,32 @@ async def create_booking(
     if booking_data.guest_id != current_guest.id:
         raise HTTPException(status_code=403, detail="Cannot create booking for another guest")
     
-    booking = db.create_booking({
-        **booking_data.dict(),
-        "status": BookingStatus.PENDING
-    })
-    
-    await EmailService.send_booking_confirmation(
-        current_guest.email,
-        {
-            "guest_name": f"{current_guest.first_name} {current_guest.last_name}",
-            "booking_id": booking.id,
-            "room_number": booking.room_number,
-            "check_in_date": booking.check_in_date.strftime("%Y-%m-%d"),
-            "check_out_date": booking.check_out_date.strftime("%Y-%m-%d"),
-            "total_amount": booking.total_amount
-        }
-    )
-    
-    await AuthorityService.send_guest_data(
-        current_guest.dict(),
-        booking.dict()
-    )
-    
-    return booking
+    try:
+        booking = db.create_booking({
+            **booking_data.dict(),
+            "status": BookingStatus.PENDING
+        })
+        
+        await EmailService.send_booking_confirmation(
+            current_guest.email,
+            {
+                "guest_name": f"{current_guest.first_name} {current_guest.last_name}",
+                "booking_id": booking.id,
+                "room_number": booking.room_number,
+                "check_in_date": booking.check_in_date.strftime("%Y-%m-%d"),
+                "check_out_date": booking.check_out_date.strftime("%Y-%m-%d"),
+                "total_amount": booking.total_amount
+            }
+        )
+        
+        await AuthorityService.send_guest_data(
+            current_guest.dict(),
+            booking.dict()
+        )
+        
+        return booking
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
 
 @app.get("/bookings", response_model=List[Booking])
 async def get_my_bookings(current_guest: Guest = Depends(get_current_guest)):
@@ -385,3 +388,12 @@ async def control_smart_lock(request: SmartLockRequest):
         request.guest_id
     )
     return response
+
+@app.get("/config/rooms")
+async def get_room_config():
+    from .room_config import RoomConfig
+    return {
+        "bnb_mode": RoomConfig.is_bnb_mode(),
+        "available_rooms": RoomConfig.get_available_rooms(),
+        "base_rate_per_night": RoomConfig.get_base_rate_per_night()
+    }

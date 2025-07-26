@@ -22,13 +22,30 @@ export function DashboardPage() {
   const { guest } = useAuth()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [loading, setLoading] = useState(true)
+  const [roomConfig, setRoomConfig] = useState({
+    bnb_mode: false,
+    available_rooms: ['101', '102', '201', '202', '301', '302']
+  })
   const { toast } = useToast()
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
   useEffect(() => {
     fetchBookings()
+    fetchRoomConfig()
   }, [])
+
+  const fetchRoomConfig = async () => {
+    try {
+      const response = await fetch(`${API_URL}/config/rooms`)
+      if (response.ok) {
+        const config = await response.json()
+        setRoomConfig(config)
+      }
+    } catch (error) {
+      console.error('Failed to fetch room config:', error)
+    }
+  }
 
   const fetchBookings = async () => {
     try {
@@ -203,7 +220,9 @@ export function DashboardPage() {
               <Card key={booking.id} className="hover:shadow-md transition-shadow">
                 <CardHeader>
                   <div className="flex justify-between items-start">
-                    <CardTitle className="text-lg">Room {booking.room_number}</CardTitle>
+                    <CardTitle className="text-lg">
+                      {roomConfig.bnb_mode ? booking.room_number : `Room ${booking.room_number}`}
+                    </CardTitle>
                     {getStatusBadge(booking.status)}
                   </div>
                   <CardDescription>

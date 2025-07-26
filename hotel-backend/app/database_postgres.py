@@ -73,7 +73,30 @@ class PostgreSQLDatabase:
                 )
             return None
     
+    def check_room_availability(self, room_number: str, check_in_date: datetime, check_out_date: datetime, exclude_booking_id: str = None) -> bool:
+        """Check if a room is available for the given date range"""
+        with self.get_session() as session:
+            query = session.query(BookingTable).filter(
+                BookingTable.room_number == room_number,
+                BookingTable.status.in_(['pending', 'confirmed', 'checked_in']),
+                BookingTable.check_in_date < check_out_date,
+                BookingTable.check_out_date > check_in_date
+            )
+            
+            if exclude_booking_id:
+                query = query.filter(BookingTable.id != exclude_booking_id)
+            
+            conflicting_bookings = query.all()
+            return len(conflicting_bookings) == 0
+
     def create_booking(self, booking_data: dict) -> Booking:
+        if not self.check_room_availability(
+            booking_data['room_number'], 
+            booking_data['check_in_date'], 
+            booking_data['check_out_date']
+        ):
+            raise ValueError(f"Room {booking_data['room_number']} is not available for the selected dates")
+            
         with self.get_session() as session:
             booking_table = BookingTable(**booking_data)
             session.add(booking_table)
@@ -134,6 +157,14 @@ class PostgreSQLDatabase:
         with self.get_session() as session:
             booking_table = session.query(BookingTable).filter(BookingTable.id == booking_id).first()
             if booking_table:
+                if any(key in update_data for key in ['room_number', 'check_in_date', 'check_out_date']):
+                    room_number = update_data.get('room_number', booking_table.room_number)
+                    check_in_date = update_data.get('check_in_date', booking_table.check_in_date)
+                    check_out_date = update_data.get('check_out_date', booking_table.check_out_date)
+                    
+                    if not self.check_room_availability(room_number, check_in_date, check_out_date, booking_id):
+                        raise ValueError(f"Room {room_number} is not available for the selected dates")
+                
                 for key, value in update_data.items():
                     if hasattr(booking_table, key) and value is not None:
                         setattr(booking_table, key, value)

@@ -26,14 +26,31 @@ export function PaymentPage() {
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState('')
   const [paymentStatus, setPaymentStatus] = useState<'pending' | 'processing' | 'success' | 'failed'>('pending')
+  const [roomConfig, setRoomConfig] = useState({
+    bnb_mode: false,
+    available_rooms: ['101', '102', '201', '202', '301', '302']
+  })
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
   useEffect(() => {
     if (bookingId) {
       fetchBooking()
+      fetchRoomConfig()
     }
   }, [bookingId])
+
+  const fetchRoomConfig = async () => {
+    try {
+      const response = await fetch(`${API_URL}/config/rooms`)
+      if (response.ok) {
+        const config = await response.json()
+        setRoomConfig(config)
+      }
+    } catch (error) {
+      console.error('Failed to fetch room config:', error)
+    }
+  }
 
   const fetchBooking = async () => {
     try {
@@ -181,7 +198,9 @@ export function PaymentPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Room:</span>
-              <span className="font-medium">Room {booking.room_number}</span>
+              <span className="font-medium">
+                {roomConfig.bnb_mode ? booking.room_number : `Room ${booking.room_number}`}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Check-in:</span>
