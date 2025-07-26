@@ -275,7 +275,7 @@ async def confirm_payment(
     payment_id: str,
     current_guest: Guest = Depends(get_current_guest)
 ):
-    payment = db.payments.get(payment_id)
+    payment = db.get_payment_by_id(payment_id)
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
     
@@ -367,15 +367,15 @@ async def check_out(
 
 @app.get("/admin/bookings", response_model=List[Booking])
 async def get_all_bookings():
-    return list(db.bookings.values())
+    return db.get_all_bookings()
 
 @app.get("/admin/guests", response_model=List[Guest])
 async def get_all_guests():
-    return list(db.guests.values())
+    return db.get_all_guests()
 
 @app.get("/admin/payments")
 async def get_all_payments():
-    return list(db.payments.values())
+    return db.get_all_payments()
 
 @app.post("/smart-lock/control")
 async def control_smart_lock(request: SmartLockRequest):

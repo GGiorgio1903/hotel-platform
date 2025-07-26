@@ -320,3 +320,68 @@ class PostgreSQLDatabase:
             
             print(f"OTP Verification: FAILED for {email}")
             return False
+    
+    def get_all_guests(self) -> List[Guest]:
+        with self.get_session() as session:
+            guest_tables = session.query(GuestTable).all()
+            return [
+                Guest(
+                    id=str(guest_table.id),
+                    email=guest_table.email,
+                    first_name=guest_table.first_name,
+                    last_name=guest_table.last_name,
+                    phone=guest_table.phone,
+                    created_at=guest_table.created_at
+                )
+                for guest_table in guest_tables
+            ]
+    
+    def get_all_bookings(self) -> List[Booking]:
+        with self.get_session() as session:
+            booking_tables = session.query(BookingTable).all()
+            return [
+                Booking(
+                    id=str(booking_table.id),
+                    guest_id=str(booking_table.guest_id),
+                    room_number=booking_table.room_number,
+                    check_in_date=booking_table.check_in_date,
+                    check_out_date=booking_table.check_out_date,
+                    total_amount=booking_table.total_amount,
+                    status=booking_table.status,
+                    special_requests=booking_table.special_requests,
+                    created_at=booking_table.created_at,
+                    updated_at=booking_table.updated_at
+                )
+                for booking_table in booking_tables
+            ]
+    
+    def get_all_payments(self) -> List[Payment]:
+        with self.get_session() as session:
+            payment_tables = session.query(PaymentTable).all()
+            return [
+                Payment(
+                    id=str(payment_table.id),
+                    booking_id=str(payment_table.booking_id),
+                    amount=payment_table.amount,
+                    currency=payment_table.currency,
+                    status=payment_table.status,
+                    stripe_payment_intent_id=payment_table.stripe_payment_intent_id,
+                    created_at=payment_table.created_at
+                )
+                for payment_table in payment_tables
+            ]
+    
+    def get_payment_by_id(self, payment_id: str) -> Optional[Payment]:
+        with self.get_session() as session:
+            payment_table = session.query(PaymentTable).filter(PaymentTable.id == payment_id).first()
+            if payment_table:
+                return Payment(
+                    id=str(payment_table.id),
+                    booking_id=str(payment_table.booking_id),
+                    amount=payment_table.amount,
+                    currency=payment_table.currency,
+                    status=payment_table.status,
+                    stripe_payment_intent_id=payment_table.stripe_payment_intent_id,
+                    created_at=payment_table.created_at
+                )
+            return None
