@@ -65,6 +65,7 @@ class EmailService:
             email_password = os.getenv("EMAIL_PASSWORD")
             email_use_tls = os.getenv("EMAIL_USE_TLS", "true").lower() == "true"
             email_from_name = os.getenv("EMAIL_FROM_NAME", "Hotel Platform")
+            email_from = os.getenv("EMAIL_FROM", "noreply@hotel-platform.com")
             
             if not all([smtp_server, email_user, email_password]):
                 print(f"Email simulation: Would send to {to_email}")
@@ -73,7 +74,7 @@ class EmailService:
                 return True
             
             msg = MIMEMultipart()
-            msg['From'] = f"{email_from_name} <{email_user}>"
+            msg['From'] = f"{email_from_name} <{email_from}>"
             msg['To'] = to_email
             msg['Subject'] = subject
             
@@ -85,11 +86,13 @@ class EmailService:
                 server.starttls()
             server.login(email_user, email_password)
             text = msg.as_string()
-            server.sendmail(email_user, to_email, text)
+            server.sendmail(email_from, to_email, text)
             server.quit()
+            
+            print(f"✅ Email sent successfully to {to_email}")
             return True
         except Exception as e:
-            print(f"Email error: {str(e)}")
+            print(f"❌ Email error: {str(e)}")
             raise Exception(f"Failed to send email: {str(e)}")
 
     @staticmethod
