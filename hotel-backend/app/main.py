@@ -1,9 +1,10 @@
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from datetime import datetime, timedelta
 import os
 from typing import List
+import time
 
 from .models import (
     Guest, GuestCreate, Booking, BookingCreate, BookingUpdate, 
@@ -14,8 +15,47 @@ from .models import (
 from .database import db
 from .auth import generate_otp, create_access_token, get_current_guest
 from .services import PaymentService, EmailService, SmartLockService, DocumentService, AuthorityService
+from .monitoring import REQUEST_COUNT, REQUEST_DURATION, generate_latest
+from .backup import backup_service
+from .scheduler import scheduler_service
+import structlog
+import asyncio
+
+logger = structlog.get_logger()
 
 app = FastAPI(title="Hotel Management Platform", version="1.0.0")
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(scheduler_service.start_scheduler())
+    logger.info("Application startup completed")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    scheduler_service.stop_scheduler()
+    logger.info("Application shutdown completed")
+
+@app.middleware("http")
+async def monitoring_middleware(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+    
+    REQUEST_COUNT.labels(
+        method=request.method,
+        endpoint=request.url.path,
+        status=response.status_code
+    ).inc()
+    
+    REQUEST_DURATION.observe(duration)
+    
+    logger.info("Request processed", 
+                method=request.method, 
+                path=request.url.path, 
+                status=response.status_code,
+                duration=duration)
+    
+    return response
 
 # Disable CORS. Do not remove this for full-stack development.
 app.add_middleware(
@@ -28,7 +68,20 @@ app.add_middleware(
 
 @app.get("/healthz")
 async def healthz():
-    return {"status": "ok"}
+    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+@app.get("/metrics")
+async def metrics():
+    return Response(generate_latest(), media_type="text/plain")
+
+@app.post("/admin/backup")
+async def trigger_backup():
+    try:
+        await backup_service.create_database_backup()
+        return {"status": "success", "message": "Backup completed successfully"}
+    except Exception as e:
+        logger.error("Manual backup failed", error=str(e))
+        raise HTTPException(status_code=500, detail=f"Backup failed: {str(e)}")
 
 @app.post("/auth/request-otp")
 async def request_otp(otp_request: OTPRequest):

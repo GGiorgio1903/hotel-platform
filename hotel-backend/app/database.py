@@ -1,6 +1,7 @@
 from typing import Dict, List, Optional
 from datetime import datetime
 import uuid
+import os
 from .models import Guest, Booking, Document, Payment, CheckInOut
 
 class InMemoryDatabase:
@@ -127,4 +128,11 @@ class InMemoryDatabase:
         print(f"OTP Verification: FAILED for {email}")
         return False
 
-db = InMemoryDatabase()
+def get_database():
+    if os.getenv("DATABASE_URL"):
+        from .database_postgres import PostgreSQLDatabase
+        return PostgreSQLDatabase()
+    else:
+        return InMemoryDatabase()
+
+db = get_database()

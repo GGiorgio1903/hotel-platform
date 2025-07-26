@@ -8,6 +8,7 @@ from typing import Optional
 import httpx
 from .database import db
 from .models import PaymentStatus, SmartLockRequest
+from .email_templates import get_otp_email_template, get_booking_confirmation_template
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
@@ -56,27 +57,32 @@ class PaymentService:
 
 class EmailService:
     @staticmethod
-    async def send_email(to_email: str, subject: str, body: str) -> bool:
+    async def send_email(to_email: str, subject: str, body: str, is_html: bool = False) -> bool:
         try:
-            smtp_server = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+            smtp_server = os.getenv("EMAIL_HOST")
             smtp_port = int(os.getenv("EMAIL_PORT", "587"))
             email_user = os.getenv("EMAIL_USER")
             email_password = os.getenv("EMAIL_PASSWORD")
+            email_use_tls = os.getenv("EMAIL_USE_TLS", "true").lower() == "true"
+            email_from_name = os.getenv("EMAIL_FROM_NAME", "Hotel Platform")
             
-            if not email_user or not email_password:
+            if not all([smtp_server, email_user, email_password]):
                 print(f"Email simulation: Would send to {to_email}")
                 print(f"Subject: {subject}")
                 print(f"Body: {body}")
                 return True
             
             msg = MIMEMultipart()
-            msg['From'] = email_user
+            msg['From'] = f"{email_from_name} <{email_user}>"
             msg['To'] = to_email
             msg['Subject'] = subject
-            msg.attach(MIMEText(body, 'plain'))
+            
+            content_type = 'html' if is_html else 'plain'
+            msg.attach(MIMEText(body, content_type))
             
             server = smtplib.SMTP(smtp_server, smtp_port)
-            server.starttls()
+            if email_use_tls:
+                server.starttls()
             server.login(email_user, email_password)
             text = msg.as_string()
             server.sendmail(email_user, to_email, text)
@@ -84,39 +90,19 @@ class EmailService:
             return True
         except Exception as e:
             print(f"Email error: {str(e)}")
-            print(f"Email simulation: Would send to {to_email}")
-            return True
+            raise Exception(f"Failed to send email: {str(e)}")
 
     @staticmethod
     async def send_otp_email(email: str, otp: str) -> bool:
-        subject = "Your Hotel Booking OTP Code"
-        body = f"""
-        Your OTP code for hotel booking authentication is: {otp}
-        
-        This code will expire in 10 minutes.
-        
-        If you didn't request this code, please ignore this email.
-        """
-        return await EmailService.send_email(email, subject, body)
+        subject = "Hotel Platform - Your OTP Code"
+        body = get_otp_email_template(otp)
+        return await EmailService.send_email(email, subject, body, is_html=True)
 
     @staticmethod
     async def send_booking_confirmation(email: str, booking_details: dict) -> bool:
-        subject = "Booking Confirmation - Hotel Platform"
-        body = f"""
-        Dear {booking_details.get('guest_name', 'Guest')},
-        
-        Your booking has been confirmed!
-        
-        Booking Details:
-        - Booking ID: {booking_details.get('booking_id')}
-        - Room: {booking_details.get('room_number')}
-        - Check-in: {booking_details.get('check_in_date')}
-        - Check-out: {booking_details.get('check_out_date')}
-        - Total Amount: €{booking_details.get('total_amount')}
-        
-        Thank you for choosing our hotel!
-        """
-        return await EmailService.send_email(email, subject, body)
+        subject = "Hotel Platform - Booking Confirmation"
+        body = get_booking_confirmation_template(booking_details)
+        return await EmailService.send_email(email, subject, body, is_html=True)
 
 class SmartLockService:
     @staticmethod
